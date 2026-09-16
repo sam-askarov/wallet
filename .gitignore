@@ -1,0 +1,13 @@
+# бинарники
+wallet
+*.exe
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# переменные окружения
+.env
