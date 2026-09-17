@@ -10,6 +10,7 @@ var (
 	ErrInvalidAmount     = errors.New("amount must be positive")
 	ErrAccountExists     = errors.New("account already exists")
 	ErrAccountNotFound   = errors.New("account not found")
+	ErrSameAccount       = errors.New("transfer to the same account")
 )
 
 type Money int64
@@ -86,29 +87,67 @@ func (w *Wallet) GetAccount(id string) (*Account, error) {
 	return acc, nil
 }
 
+func (w *Wallet) Transfer(fromID, toID string, amount Money) error {
+	if fromID == toID {
+		return ErrSameAccount
+	}
+
+	if amount <= 0 {
+		return ErrInvalidAmount
+	}
+
+	from, err := w.GetAccount(fromID)
+	if err != nil {
+		return err
+	}
+
+	to, err := w.GetAccount(toID)
+	if err != nil {
+		return err
+	}
+
+	if err := from.Withdraw(amount); err != nil {
+		return err
+	}
+
+	return to.Deposit(amount)
+}
+
 func main() {
 	w := NewWallet()
 
-	acc, err := w.CreateAccount("acc-1", "Anna")
-	if err != nil {
-		fmt.Println("error:", err)
-		return
-	}
+	acc1, _ := w.CreateAccount("acc-1", "Anna")
+	acc2, _ := w.CreateAccount("acc-2", "Boris")
 
-	if err := acc.Deposit(100000); err != nil {
-		fmt.Println("error:", err)
-	}
-	fmt.Println(acc.Balance) // 1000.00
+	_ = acc1.Deposit(100000) // 1000.00
 
-	// тот же счёт достаём из кошелька
-	same, _ := w.GetAccount("acc-1")
-	fmt.Println(same.Balance) // 1000.00 — тот же объект!
+	fmt.Println("=== до переводов ===")
+	fmt.Println("acc-1:", acc1.Balance)
+	fmt.Println("acc-2:", acc2.Balance)
 
-	// дубликат
-	_, err = w.CreateAccount("acc-1", "Boris")
-	fmt.Println(err) // account already exists
+	// 1. перевод самому себе
+	err := w.Transfer("acc-1", "acc-1", 5000)
+	fmt.Println("\n1. самому себе:", err)
+	fmt.Println("   acc-1:", acc1.Balance)
 
-	// несуществующий
-	_, err = w.GetAccount("acc-99")
-	fmt.Println(err)
+	// 2. отрицательная сумма
+	err = w.Transfer("acc-1", "acc-2", -100)
+	fmt.Println("\n2. отрицательная сумма:", err)
+	fmt.Println("   acc-1:", acc1.Balance)
+
+	// 3. несуществующий получатель
+	err = w.Transfer("acc-1", "acc-99", 5000)
+	fmt.Println("\n3. нет получателя:", err)
+	fmt.Println("   acc-1:", acc1.Balance)
+
+	// 4. не хватает денег
+	err = w.Transfer("acc-1", "acc-2", 999999)
+	fmt.Println("\n4. мало денег:", err)
+	fmt.Println("   acc-1:", acc1.Balance)
+
+	// 5. успешный перевод
+	err = w.Transfer("acc-1", "acc-2", 30000)
+	fmt.Println("\n5. успех:", err)
+	fmt.Println("   acc-1:", acc1.Balance)
+	fmt.Println("   acc-2:", acc2.Balance)
 }
