@@ -3,10 +3,13 @@ package main
 import (
 	"errors"
 	"testing"
+	"wallet/internal/account"
+	"wallet/internal/money"
+	"wallet/internal/wallet"
 )
 
 func TestDeposit(t *testing.T) {
-	acc := &Account{ID: "acc-1", Owner: "Anna", Balance: 0}
+	acc := &account.Account{ID: "acc-1", Owner: "Anna", Balance: 0}
 
 	err := acc.Deposit(10000)
 
@@ -20,12 +23,12 @@ func TestDeposit(t *testing.T) {
 }
 
 func TestDepositNegative(t *testing.T) {
-	acc := &Account{ID: "acc-1", Owner: "Anna", Balance: 0}
+	acc := &account.Account{ID: "acc-1", Owner: "Anna", Balance: 0}
 
 	err := acc.Deposit(-100)
 
-	if !errors.Is(err, ErrInvalidAmount) {
-		t.Fatalf("got %v, want %v", err, ErrInvalidAmount)
+	if !errors.Is(err, account.ErrInvalidAmount) {
+		t.Fatalf("got %v, want %v", err, account.ErrInvalidAmount)
 	}
 
 	if acc.Balance != 0 {
@@ -36,10 +39,10 @@ func TestDepositNegative(t *testing.T) {
 func TestWithdrawTable(t *testing.T) {
 	tests := []struct {
 		name        string
-		balance     Money
-		amount      Money
+		balance     money.Money
+		amount      money.Money
 		wantErr     error
-		wantBalance Money
+		wantBalance money.Money
 	}{
 		{
 			name:        "успешное снятие",
@@ -52,21 +55,21 @@ func TestWithdrawTable(t *testing.T) {
 			name:        "недостаточно средств",
 			balance:     10000,
 			amount:      99999,
-			wantErr:     ErrInsufficientFunds,
+			wantErr:     account.ErrInsufficientFunds,
 			wantBalance: 10000,
 		},
 		{
 			name:        "отрицательная сумма",
 			balance:     10000,
 			amount:      -500,
-			wantErr:     ErrInvalidAmount,
+			wantErr:     account.ErrInvalidAmount,
 			wantBalance: 10000,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			acc := &Account{ID: "acc-1", Owner: "Anna", Balance: tt.balance}
+			acc := &account.Account{ID: "acc-1", Owner: "Anna", Balance: tt.balance}
 
 			err := acc.Withdraw(tt.amount)
 
@@ -84,14 +87,14 @@ func TestWithdrawTable(t *testing.T) {
 func TestTransferTable(t *testing.T) {
 	tests := []struct {
 		name            string
-		balanceFrom     Money
-		balanceTo       Money
+		balanceFrom     money.Money
+		balanceTo       money.Money
 		fromID          string
 		toID            string
-		amount          Money
+		amount          money.Money
 		wantErr         error
-		wantBalanceFrom Money
-		wantBalanceTo   Money
+		wantBalanceFrom money.Money
+		wantBalanceTo   money.Money
 	}{
 		{
 			name:            "успешный перевод",
@@ -110,7 +113,7 @@ func TestTransferTable(t *testing.T) {
 			fromID:          "acc-1",
 			toID:            "acc-1",
 			amount:          5000,
-			wantErr:         ErrSameAccount,
+			wantErr:         wallet.ErrSameAccount,
 			wantBalanceFrom: 10000,
 		},
 		{
@@ -119,7 +122,7 @@ func TestTransferTable(t *testing.T) {
 			fromID:          "acc-1",
 			toID:            "acc-99",
 			amount:          5000,
-			wantErr:         ErrAccountNotFound,
+			wantErr:         wallet.ErrAccountNotFound,
 			wantBalanceFrom: 1000,
 		},
 		{
@@ -129,7 +132,7 @@ func TestTransferTable(t *testing.T) {
 			fromID:          "acc-1",
 			toID:            "acc-2",
 			amount:          999900,
-			wantErr:         ErrInsufficientFunds,
+			wantErr:         account.ErrInsufficientFunds,
 			wantBalanceFrom: 10000,
 			wantBalanceTo:   0,
 		},
@@ -140,7 +143,7 @@ func TestTransferTable(t *testing.T) {
 			fromID:          "acc-1",
 			toID:            "acc-2",
 			amount:          -1000,
-			wantErr:         ErrInvalidAmount,
+			wantErr:         account.ErrInvalidAmount,
 			wantBalanceFrom: 10000,
 			wantBalanceTo:   0,
 		},
@@ -148,7 +151,7 @@ func TestTransferTable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := NewWallet()
+			w := wallet.NewWallet()
 
 			acc1, _ := w.CreateAccount("acc-1", "Anna")
 			acc2, _ := w.CreateAccount("acc-2", "Jane")
