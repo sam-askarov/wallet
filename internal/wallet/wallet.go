@@ -16,7 +16,7 @@ type Wallet struct {
 	accounts map[string]*account.Account
 }
 
-func NewWallet() *Wallet {
+func New() *Wallet {
 	return &Wallet{
 		accounts: make(map[string]*account.Account),
 	}

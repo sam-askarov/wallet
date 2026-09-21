@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	w := wallet.NewWallet()
+	w := wallet.New()
 
 	acc1, _ := w.CreateAccount("acc-1", "Anna")
 	acc2, _ := w.CreateAccount("acc-2", "Boris")
